@@ -21,14 +21,19 @@ export default class CurrConv extends Component {
   };
 
   _getCurrency(base) {
+    const { baseAmount, targetCurrency } = this.state
     try {
       axios.get('https://api.exchangeratesapi.io/latest?base=' + base).
         then(res => {
-          const currencyArr = res.data.rates;
+          let currencyArr = res.data.rates;
+          let currencyValue = currencyArr[targetCurrency];
+          let targetAmount = this._countCurrency(baseAmount, currencyValue);
+
           this.setState({
             currencyArr,
-            currencyValue: currencyArr[this.state.targetCurrency]
-          }, () => console.log(this.state.currencyValue));
+            currencyValue,
+            targetAmount
+          });
         });
     } catch (error) {
       console.error(error);
@@ -43,7 +48,7 @@ export default class CurrConv extends Component {
 
   _updateBaseAmount = baseAmount => {
     const { currencyValue } = this.state;
-    const targetAmount = this._countCurrency(baseAmount, currencyValue)
+    const targetAmount = this._countCurrency(baseAmount, currencyValue);
 
     this.setState({
       baseAmount,
@@ -52,19 +57,30 @@ export default class CurrConv extends Component {
   };
 
   _updateTargetCurrency = (targetCurrency, currencyValue) => {
+    const { baseAmount } = this.state;
+
+    let targetAmount = this._countCurrency(baseAmount, currencyValue);
+
     this.setState({
       targetCurrency,
-      currencyValue
+      currencyValue,
+      targetAmount
     });
   };
 
-  _countCurrency = (baseAmount, currencyValue) => baseAmount * currencyValue;
+  _countCurrency = (baseAmount, currencyValue) => {
+    if (baseAmount === undefined) {
+      return 0;
+    };
+
+    return baseAmount * currencyValue;
+  }
 
   _renderBasePicker = currencyArr => (
     <Picker
       selectedValue={this.state.baseCurrency}
       mode='dialog'
-      style={{ marginHorizontal: 10 }}
+      style={{ width: 100 }}
       onValueChange={baseCurrency => this._updateBaseCurrency(baseCurrency)}>
       {
         Object.keys(currencyArr).map((data, index) => {
@@ -79,7 +95,7 @@ export default class CurrConv extends Component {
   _renderTargetPicker = currencyArr => (
     <Picker
       selectedValue={this.state.targetCurrency}
-      style={{ marginHorizontal: 10 }}
+      style={{ width: 100 }}
       onValueChange={targetCurrency => this._updateTargetCurrency(targetCurrency, currencyArr[targetCurrency])}
     >
       {
@@ -155,12 +171,10 @@ export default class CurrConv extends Component {
 
     const { baseCurrency, targetCurrency, baseAmount, targetAmount, currencyValue, savedCurrencyList } = this.state;
     const currencyData = { baseCurrency, targetCurrency, baseAmount, targetAmount, currencyValue };
-
     let tempArray = savedCurrencyList;
-    console.log(savedCurrencyList);
 
     tempArray.push(currencyData);
-    console.log('temp array', tempArray);
+  
     this.setState({
       savedCurrencyList: tempArray
     }, () => this._storeLocalData(savedCurrencyList));
@@ -190,7 +204,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    alignSelf: 'center',
     justifyContent: 'center',
     padding: 20
   },
@@ -198,9 +211,8 @@ const styles = StyleSheet.create({
     borderColor: 'black',
     borderWidth: 1,
     borderRadius: 2,
-    padding: 5,
     marginVertical: 5,
     flexDirection: 'row',
-    width: '100%'
+    alignItems: 'center'
   }
 });
