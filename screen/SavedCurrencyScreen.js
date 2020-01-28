@@ -1,6 +1,10 @@
 import React, { Component } from 'react';
-import { View, Text, AsyncStorage, Button, Fragment } from 'react-native';
+import { StyleSheet, View, Text, AsyncStorage, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
+const Separator = () => (
+    <View style={styles.separator} />
+);
 class SavedCurrency extends Component {
     state = {
         savedCurrencyList: [],
@@ -11,8 +15,10 @@ class SavedCurrency extends Component {
         savedCurrencyList: []
     }
 
-    componentDidMount() {
-        this._getLocalData();
+    async componentDidMount() {
+        this.setState({
+            savedCurrencyList: await this._getLocalData()
+        });
     };
 
     _currencyFormat = num => {
@@ -24,31 +30,41 @@ class SavedCurrency extends Component {
 
         return (
             savedCurrencyList.map((data, index) => {
-                const { baseCurrency, targetCurrency, baseAmount, targetAmount, currencyValue } = data;
                 return (
-                    <View style={{ justifyContent: 'flex-start', margin: 5 }} key={index}>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                            <View style={{ flexDirection: 'row' }}>
-                                <Text style={{ fontSize: 18, fontWeight: 'bold' }}>{baseCurrency} : </Text>
-                                <Text style={{ fontSize: 18, fontWeight: 'bold' }}>{baseAmount}</Text>
-                            </View>
-                            <View style={{ flexDirection: 'row' }}>
-                                <Text style={{ fontSize: 18, fontWeight: 'bold' }}>{targetCurrency} : </Text>
-                                <Text style={{ fontSize: 18, fontWeight: 'bold' }}>{this._currencyFormat(targetAmount)}</Text>
-                            </View>
-                        </View>
-                        <View style={{ flexDirection: 'row', justifyContent: "space-between" }}>
-                            <Text> 1 {baseCurrency} = {this._currencyFormat(currencyValue)} {targetCurrency}</Text>
-                            <Button
-                                title="delete"
-                                onPress={() => this._deleteCurrencyList(index)}
-                            />
-                        </View>
+                    <View style={styles.listWrapper} key={index}>
+                        {this._renderUpperContent(data, index)}
+                        <Separator />
+                        {this._renderLowerContent(data)}
                     </View>
                 );
             })
         );
     };
+
+    _renderUpperContent = (data, index) => {
+        const { baseCurrency, targetCurrency, currencyValue } = data;
+
+        return (
+            <View style={styles.upperContent}>
+                <Text> 1 {baseCurrency} = {this._currencyFormat(currencyValue)} {targetCurrency}</Text>
+                <TouchableOpacity onPress={() => this._deleteCurrencyList(index)}>
+                    <Ionicons name='ios-close-circle-outline' size={18} color='red' />
+                </TouchableOpacity>
+            </View>
+        );
+    };
+
+    _renderLowerContent = data => {
+        const { baseCurrency, targetCurrency, baseAmount, targetAmount } = data;
+
+        return (
+            <View style={styles.lowerContent}>
+                <Text style={styles.lowerContentFont}>{baseAmount} ({baseCurrency})</Text>
+                <Text style={styles.lowerContentFont}> = </Text>
+                <Text style={styles.lowerContentFont}>{this._currencyFormat(targetAmount)} ({targetCurrency})</Text>
+            </View>
+        );
+    }
 
     _deleteCurrencyList = index => {
         const { savedCurrencyList } = this.state;
@@ -59,7 +75,7 @@ class SavedCurrency extends Component {
         this.setState({
             savedCurrencyList: tempArray
         }, () => this._storeLocalData(savedCurrencyList));
-    }
+    };
 
     _storeLocalData = async currencyListArray => {
         try {
@@ -69,15 +85,14 @@ class SavedCurrency extends Component {
         }
     };
 
+    _renderSeparator = array => array.length > 0 && <Separator />
+
     _getLocalData = async () => {
         let savedCurrencyList = [];
         try {
             const value = await AsyncStorage.getItem('savedCurrencyList')
             if (value != null) {
-                savedCurrencyList = JSON.parse(value);
-                this.setState({
-                    savedCurrencyList
-                });
+                return JSON.parse(value);
             };
             return value;
         } catch (e) {
@@ -87,7 +102,7 @@ class SavedCurrency extends Component {
 
     render() {
         return (
-            <View>
+            <View style={styles.container}>
                 {this.__renderSavedCurrencyList()}
             </View>
         );
@@ -95,3 +110,37 @@ class SavedCurrency extends Component {
 };
 
 export default SavedCurrency;
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: 'white'
+    },
+    listWrapper: {
+        justifyContent: 'flex-start',
+        margin: 5,
+        paddingHorizontal: 5,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderRadius: 5,
+        borderColor: 'black'
+    },
+    upperContent: {
+        paddingHorizontal: 10,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginVertical: 5
+    },
+    lowerContent: {
+        padding: 10,
+        flexDirection: 'row',
+        justifyContent: 'center'
+    },
+    separator: {
+        borderBottomColor: '#737373',
+        borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    lowerContentFont: {
+        fontSize: 20,
+        fontWeight: 'bold'
+    }
+})
