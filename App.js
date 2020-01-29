@@ -13,7 +13,10 @@ const MainNavigator = createStackNavigator(
     initialRouteName: 'CurrencyList',
     defaultNavigationOptions: {
       headerStyle: {
-        backgroundColor: '#dca780',
+        backgroundColor: '#607D8B',
+        shadowColor: 'transparent',
+        elevation: 0,
+        borderBottomWidth: 0
       },
       headerTintColor: '#fff',
       headerTitleStyle: {

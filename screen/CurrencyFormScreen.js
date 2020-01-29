@@ -209,7 +209,8 @@ export default class CurrConv extends Component {
 
     tempArray.push(currencyData);
 
-    this._storeLocalData(tempArray)
+    this._storeLocalData(tempArray);
+    this.props.navigation.goBack();
   };
 
   _renderSaveButton = () => {

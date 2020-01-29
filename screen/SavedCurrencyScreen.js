@@ -2,13 +2,15 @@ import React, { Component } from 'react';
 import { StyleSheet, View, Text, AsyncStorage, TouchableOpacity, Button } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import HeaderWidget from './HeaderWidget';
+import FooterWidget from './FooterWidget';
+
 const Separator = () => (
     <View style={styles.separator} />
 );
 class SavedCurrency extends Component {
 
     state = {
-        savedCurrencyList: [],
         targetAmount: undefined,
         currencyValue: 0,
         baseCurrency: '',
@@ -16,18 +18,25 @@ class SavedCurrency extends Component {
         savedCurrencyList: []
     };
 
-    static navigationOptions = ({ navigation }) => {
-        return {
-            headerRight: () => (
-                <TouchableOpacity onPress={() => navigation.navigate('CurrencyForm')} style={{ marginRight: 10 }}>
-                    <Ionicons name='ios-add' size={36} color='white' />
-                </TouchableOpacity >
-            )
-        }
+    // static navigationOptions = ({ navigation }) => {
+    //     return {
+    //         headerRight: () => (
+    //             <TouchableOpacity onPress={() => navigation.navigate('CurrencyForm')} style={{ marginRight: 10 }}>
+    //                 <Ionicons name='ios-add' size={36} color='white' />
+    //             </TouchableOpacity >
+    //         )
+    //     }
+    // };
+
+    static navigationOptions = {
+        title: 'Currency Converter App',
     };
 
     componentDidMount() {
         const { navigation } = this.props;
+        this._storeLocalData();
+
+        
         //Adding an event listner om focus
         //So whenever the screen will have focus it will set the state to zero
         this.focusListener = navigation.addListener('didFocus', async () => {
@@ -103,6 +112,7 @@ class SavedCurrency extends Component {
             await AsyncStorage.setItem('savedCurrencyList', JSON.stringify(savedCurrencyList));
         } catch (error) {
             // Error saving data
+            console.log(error);
         }
     };
 
@@ -120,21 +130,26 @@ class SavedCurrency extends Component {
         }
     };
 
+    _navigateToForm = () => {
+        this.props.navigation.navigate('CurrencyForm');
+    }
+
     render() {
         return (
             <View style={styles.container}>
+                <HeaderWidget />
                 {this._renderSavedCurrencyList()}
+                <FooterWidget onPressAdd={this._navigateToForm} />
             </View>
         );
     };
 };
 
-export default SavedCurrency;
-
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: 'white'
+        backgroundColor: 'white',
+        justifyContent: 'space-between'
     },
     listWrapper: {
         justifyContent: 'flex-start',
@@ -164,3 +179,5 @@ const styles = StyleSheet.create({
         fontWeight: 'bold'
     }
 });
+
+export default SavedCurrency;
