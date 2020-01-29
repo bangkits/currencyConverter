@@ -1,11 +1,12 @@
 import React, { Component } from 'react';
-import { StyleSheet, View, Text, AsyncStorage, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, AsyncStorage, TouchableOpacity, Button } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 const Separator = () => (
     <View style={styles.separator} />
 );
 class SavedCurrency extends Component {
+
     state = {
         savedCurrencyList: [],
         targetAmount: undefined,
@@ -13,19 +14,37 @@ class SavedCurrency extends Component {
         baseCurrency: '',
         targetCurrency: '',
         savedCurrencyList: []
-    }
+    };
 
-    async componentDidMount() {
-        this.setState({
-            savedCurrencyList: await this._getLocalData()
+    static navigationOptions = ({ navigation }) => {
+        return {
+            headerRight: () => (
+                <TouchableOpacity onPress={() => navigation.navigate('CurrencyForm')} style={{ marginRight: 10 }}>
+                    <Ionicons name='ios-add' size={36} color='white' />
+                </TouchableOpacity >
+            )
+        }
+    };
+
+    componentDidMount() {
+        const { navigation } = this.props;
+        //Adding an event listner om focus
+        //So whenever the screen will have focus it will set the state to zero
+        this.focusListener = navigation.addListener('didFocus', async () => {
+            this.setState({
+                savedCurrencyList: await this._getLocalData()
+            });
         });
     };
 
-    _currencyFormat = num => {
-        return num.toFixed(2).replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,')
-    };
+    componentWillUnmount() {
+        // Remove the event listener before removing the screen from the stack
+        this.focusListener.remove();
+    }
 
-    __renderSavedCurrencyList = () => {
+    _currencyFormat = num => num.toFixed(2).replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,');
+
+    _renderSavedCurrencyList = () => {
         const { savedCurrencyList } = this.state;
 
         return (
@@ -74,12 +93,14 @@ class SavedCurrency extends Component {
 
         this.setState({
             savedCurrencyList: tempArray
-        }, () => this._storeLocalData(savedCurrencyList));
+        }, this._storeLocalData);
     };
 
-    _storeLocalData = async currencyListArray => {
+    _storeLocalData = async () => {
+        const { savedCurrencyList } = this.state;
+
         try {
-            await AsyncStorage.setItem('savedCurrencyList', JSON.stringify(currencyListArray));
+            await AsyncStorage.setItem('savedCurrencyList', JSON.stringify(savedCurrencyList));
         } catch (error) {
             // Error saving data
         }
@@ -88,7 +109,6 @@ class SavedCurrency extends Component {
     _renderSeparator = array => array.length > 0 && <Separator />
 
     _getLocalData = async () => {
-        let savedCurrencyList = [];
         try {
             const value = await AsyncStorage.getItem('savedCurrencyList')
             if (value != null) {
@@ -103,7 +123,7 @@ class SavedCurrency extends Component {
     render() {
         return (
             <View style={styles.container}>
-                {this.__renderSavedCurrencyList()}
+                {this._renderSavedCurrencyList()}
             </View>
         );
     };
@@ -143,4 +163,4 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontWeight: 'bold'
     }
-})
+});

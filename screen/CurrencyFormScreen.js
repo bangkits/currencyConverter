@@ -15,7 +15,8 @@ export default class CurrConv extends Component {
     currencyValue: 1,
     baseCurrencyArray: ['IDR', 'USD', 'GBP'],
     baseCurrency: 'IDR',
-    targetCurrency: 'IDR'
+    targetCurrency: 'IDR',
+    isSubmit: false
   }
 
   componentDidMount() {
@@ -35,7 +36,7 @@ export default class CurrConv extends Component {
             currencyArr,
             currencyValue,
             targetAmount
-          });
+          }, this._cek);
         });
     } catch (error) {
       console.error(error);
@@ -45,7 +46,7 @@ export default class CurrConv extends Component {
   _updateBaseCurrency = baseCurrency => {
     this.setState({
       baseCurrency
-    }, () => this._getCurrency(baseCurrency));
+    }, this._getCurrency);
   };
 
   _updateBaseAmount = baseAmount => {
@@ -55,13 +56,13 @@ export default class CurrConv extends Component {
     this.setState({
       baseAmount,
       targetAmount
-    }, () => console.log(baseAmount));
+    });
   };
 
-  _updateTargetCurrency = (targetCurrency, currencyValue) => {
-    const { baseAmount } = this.state;
-
-    let targetAmount = this._countCurrency(baseAmount, currencyValue);
+  _updateTargetCurrency = targetCurrency => {
+    const { baseAmount, currencyArr } = this.state;
+    const currencyValue = currencyArr[targetCurrency]
+    const targetAmount = this._countCurrency(baseAmount, currencyValue);
 
     this.setState({
       targetCurrency,
@@ -78,56 +79,61 @@ export default class CurrConv extends Component {
     return baseAmount * currencyValue;
   };
 
-  _renderBasePicker = currencyArr => (
-    <Picker
-      selectedValue={this.state.baseCurrency}
-      mode='dialog'
-      style={{ width: 50 }}
-      onValueChange={baseCurrency => this._updateBaseCurrency(baseCurrency)}>
-      {
-        Object.keys(currencyArr).map((data, index) => {
-          return (
-            <Picker.Item label={data} value={data} key={index} />
-          )
-        })
-      }
-    </Picker>
-  );
+  _renderBasePicker = () => {
+    const { baseCurrency, currencyArr } = this.state;
 
-  _renderTargetPicker = currencyArr => (
-    <Picker
-      selectedValue={this.state.targetCurrency}
-      style={{ width: 50 }}
-      onValueChange={targetCurrency => this._updateTargetCurrency(targetCurrency, currencyArr[targetCurrency])}
-    >
-      {
-        Object.keys(currencyArr).map((data, index) => {
-          return (
-            <Picker.Item label={data} value={data} key={index} />
-          );
-        })
-      }
-    </Picker>
-  );
+    return (
+      <Picker
+        selectedValue={baseCurrency}
+        mode='dialog'
+        style={{ width: 100 }}
+        onValueChange={this._updateBaseCurrency}>
+        {
+          Object.keys(currencyArr).map((data, index) => {
+            return (
+              <Picker.Item label={data} value={data} key={index} />
+            )
+          })
+        }
+      </Picker>
+    );
+  };
+
+  _renderTargetPicker = () => {
+    const { currencyArr, targetCurrency } = this.state;
+
+    return (
+      <Picker
+        selectedValue={targetCurrency}
+        style={{ width: 100 }}
+        onValueChange={this._updateTargetCurrency}
+      >
+        {
+          Object.keys(currencyArr).map((data, index) => {
+            return (
+              <Picker.Item label={data} value={data} key={index} />
+            );
+          })
+        }
+      </Picker>
+    );
+  };
 
   _renderLoading = () => (
     <ActivityIndicator size="small" color="black" />
   );
 
   _renderBaseAmount = () => {
-    const { baseAmount, currencyArr } = this.state;
+    const { baseAmount } = this.state;
 
-    console.log(currencyArr);
     return (
       <View style={styles.form}>
-        {
-          currencyArr === {} ? this._renderLoading() : this._renderBasePicker(currencyArr)
-        }
+        {this._renderBasePicker()}
         <TextInput
-          style={{ width: '100%' }}
+          style={styles.textAmount}
           placeholder='input amount'
           value={baseAmount}
-          onChangeText={baseAmount => this._updateBaseAmount(baseAmount)}
+          onChangeText={this._updateBaseAmount}
         />
       </View>
     )
@@ -141,7 +147,9 @@ export default class CurrConv extends Component {
     return (
       <View style={styles.form}>
         {this._renderTargetPicker(currencyArr)}
-        <Text>{targetAmount && this._currencyFormat(targetAmount)}</Text>
+        <Text style={styles.textAmount} >
+          {targetAmount && this._currencyFormat(targetAmount)}
+        </Text>
       </View>
     )
   };
@@ -160,10 +168,21 @@ export default class CurrConv extends Component {
   _storeLocalData = async currencyListArray => {
     try {
       await AsyncStorage.setItem('savedCurrencyList', JSON.stringify(currencyListArray));
-      ToastAndroid.show('Currency Saved!', ToastAndroid.SHORT);
+      this.setState({
+        isSubmit: true
+      },
+        this._hideSnackBar
+      );
     } catch (error) {
       console.log(error);
     }
+  };
+
+  _hideSnackBar = () => {
+    setTimeout(() =>
+      this.setState({
+        isSubmit: false
+      }), 3000);
   };
 
   _setCurrencyData = () => {
@@ -193,42 +212,28 @@ export default class CurrConv extends Component {
     this._storeLocalData(tempArray)
   };
 
-  _isDisabledSaveButton = (baseAmount, targetAmount) => (
-    baseAmount == '' && targetAmount == 0
-  );
-
   _renderSaveButton = () => {
     const { baseAmount, targetAmount } = this.state;
+    const _isDisabledSaveButton = baseAmount == '' && targetAmount == 0;
 
     return (
       <Button
-        disabled={this._isDisabledSaveButton(baseAmount, targetAmount)}
+        disabled={_isDisabledSaveButton}
         title="Save Currency"
-        onPress={() => this._addCurrency()}
-      />
-    );
-  };
-
-  _renderNavigateButton = () => {
-    const { navigation: { navigate } } = this.props;
-    return (
-      <Button
-        title="Currency List"
-        onPress={() => navigate('CurrencyList')}
+        onPress={this._addCurrency}
       />
     );
   };
 
   render() {
+    const { isSubmit } = this.state;
     return (
       <View style={styles.container}>
         {this._renderBaseAmount()}
         {this._renderTargetAmount()}
-        <Separator />
-        <View style={styles.buttonWrapper}>
-          {this._renderSaveButton()}
-          {this._renderNavigateButton()}
-        </View>
+        {isSubmit ? <Text> Currency Saved !</Text> : <Separator />}
+        {this._renderSaveButton()}
+
       </View>
     );
   };
@@ -238,7 +243,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    justifyContent: 'center',
     padding: 20
   },
   form: {
@@ -250,13 +254,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center'
   },
-  buttonWrapper: {
-    flexDirection: 'row',
-    justifyContent: 'space-evenly'
-  },
   separator: {
     marginVertical: 8,
     borderBottomColor: '#737373',
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  textAmount: {
+    marginLeft: 10,
+    width: '100%'
+  }
 });
