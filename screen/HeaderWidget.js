@@ -5,7 +5,7 @@ import { Picker, Icon } from 'native-base';
 class HeaderWidget extends Component {
   
   state = {
-    currency: 'USD'
+    currency: 'IDR'
   };
   
   render() {
@@ -19,6 +19,7 @@ class HeaderWidget extends Component {
               placeholder="Input Amount..."
               placeholderTextColor="#616161"
               style={styles.formInput}
+              onChangeText={(value) => this.props.onChangeAmount(value)}
             />
             {/* <Picker
               mode="dropdown"
