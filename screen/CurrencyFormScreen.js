@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { StyleSheet, View, TextInput, Button, Picker, ActivityIndicator, AsyncStorage, Text, ToastAndroid } from 'react-native';
+import { StyleSheet, View, ActivityIndicator, AsyncStorage, Text, ScrollView, TouchableOpacity } from 'react-native';
 import axios from 'axios';
 
 const Separator = () => (
@@ -8,14 +8,12 @@ const Separator = () => (
 
 export default class CurrConv extends Component {
 
+  static navigationOptions = {
+    title: 'Currency List',
+  };
+
   state = {
     currencyArr: {},
-    baseAmount: '',
-    targetAmount: '',
-    currencyValue: 1,
-    baseCurrencyArray: ['IDR', 'USD', 'GBP'],
-    baseCurrency: 'IDR',
-    targetCurrency: 'IDR',
     isSubmit: false
   }
 
@@ -24,135 +22,47 @@ export default class CurrConv extends Component {
   };
 
   _getCurrency() {
-    const { baseAmount, targetCurrency, baseCurrency } = this.state
     try {
-      axios.get('https://api.exchangeratesapi.io/latest?base=' + baseCurrency).
+      axios.get('https://api.exchangeratesapi.io/latest?base=IDR').
         then(res => {
           let currencyArr = res.data.rates;
-          let currencyValue = currencyArr[targetCurrency];
-          let targetAmount = this._countCurrency(baseAmount, currencyValue);
 
-          this.setState({
-            currencyArr,
-            currencyValue,
-            targetAmount
-          }, this._cek);
+          this.setState({ currencyArr });
         });
     } catch (error) {
       console.error(error);
     };
   };
 
-  _updateBaseCurrency = baseCurrency => {
-    this.setState({
-      baseCurrency
-    }, this._getCurrency);
-  };
-
-  _updateBaseAmount = baseAmount => {
-    const { currencyValue } = this.state;
-    const targetAmount = this._countCurrency(baseAmount, currencyValue);
-
-    this.setState({
-      baseAmount,
-      targetAmount
-    });
-  };
-
-  _updateTargetCurrency = targetCurrency => {
-    const { baseAmount, currencyArr } = this.state;
-    const currencyValue = currencyArr[targetCurrency]
-    const targetAmount = this._countCurrency(baseAmount, currencyValue);
-
-    this.setState({
-      targetCurrency,
-      currencyValue,
-      targetAmount
-    });
-  };
-
-  _countCurrency = (baseAmount, currencyValue) => {
-    if (baseAmount === '') {
-      return 0;
-    };
-
-    return baseAmount * currencyValue;
-  };
-
-  _renderBasePicker = () => {
-    const { baseCurrency, currencyArr } = this.state;
-
+  _renderContent = data => {
+    const { item, index} = data;
     return (
-      <Picker
-        selectedValue={baseCurrency}
-        mode='dialog'
-        style={{ width: 100 }}
-        onValueChange={this._updateBaseCurrency}>
-        {
-          Object.keys(currencyArr).map((data, index) => {
-            return (
-              <Picker.Item label={data} value={data} key={index} />
-            )
-          })
-        }
-      </Picker>
+        <View style={styles.listWrapper} key={index}>
+            <Text style={styles.lowerContentFont}>{item}</Text>
+            <TouchableOpacity onPress={this._addCurrency(item)}>
+              <Text>Add</Text>
+            </TouchableOpacity>
+        </View>
     );
   };
 
-  _renderTargetPicker = () => {
-    const { currencyArr, targetCurrency } = this.state;
-
+  _renderListCurrency = () => {
+    const { currencyArr } = this.state;
     return (
-      <Picker
-        selectedValue={targetCurrency}
-        style={{ width: 100 }}
-        onValueChange={this._updateTargetCurrency}
-      >
-        {
-          Object.keys(currencyArr).map((data, index) => {
-            return (
-              <Picker.Item label={data} value={data} key={index} />
-            );
-          })
-        }
-      </Picker>
-    );
+      <ScrollView>
+        {Object.keys(currencyArr).map((item, index) => {
+          const value = currencyArr[item];
+          return this._renderContent({item, value, index});
+        })}
+      </ScrollView>
+    )
   };
 
   _renderLoading = () => (
     <ActivityIndicator size="small" color="black" />
   );
 
-  _renderBaseAmount = () => {
-    const { baseAmount } = this.state;
-
-    return (
-      <View style={styles.form}>
-        {this._renderBasePicker()}
-        <TextInput
-          style={styles.textAmount}
-          placeholder='input amount'
-          value={baseAmount}
-          onChangeText={this._updateBaseAmount}
-        />
-      </View>
-    )
-  };
-
   _currencyFormat = num => num.toFixed(2).replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,');
-
-  _renderTargetAmount = () => {
-    const { targetAmount, currencyArr } = this.state;
-
-    return (
-      <View style={styles.form}>
-        {this._renderTargetPicker(currencyArr)}
-        <Text style={styles.textAmount} >
-          {targetAmount && this._currencyFormat(targetAmount)}
-        </Text>
-      </View>
-    )
-  };
 
   _getLocalData = async () => {
     try {
@@ -168,6 +78,8 @@ export default class CurrConv extends Component {
   _storeLocalData = async currencyListArray => {
     try {
       await AsyncStorage.setItem('savedCurrencyList', JSON.stringify(currencyListArray));
+      await AsyncStorage.setItem('currencyList', JSON.stringify(this.state.currencyArr));
+
       this.setState({
         isSubmit: true
       },
@@ -180,61 +92,22 @@ export default class CurrConv extends Component {
 
   _hideSnackBar = () => {
     setTimeout(() =>
-      this.setState({
-        isSubmit: false
-      }), 3000);
+      this.props.navigation.goBack(), 1000);
   };
 
-  _setCurrencyData = () => {
-    const {
-      baseCurrency,
-      targetCurrency,
-      baseAmount,
-      targetAmount,
-      currencyValue
-    } = this.state;
-
-    return ({
-      baseCurrency,
-      targetCurrency,
-      baseAmount,
-      targetAmount,
-      currencyValue
-    })
-  };
-
-  _addCurrency = async () => {
-    const currencyData = this._setCurrencyData();
+  _addCurrency = item => async () => {
     const tempArray = await this._getLocalData();
 
-    tempArray.push(currencyData);
+    tempArray.push(item);
 
     this._storeLocalData(tempArray);
-    this.props.navigation.goBack();
   };
 
-  _renderSaveButton = () => {
-    const { baseAmount, targetAmount } = this.state;
-    const _isDisabledSaveButton = baseAmount == '' && targetAmount == 0;
-
-    return (
-      <Button
-        disabled={_isDisabledSaveButton}
-        title="Save Currency"
-        onPress={this._addCurrency}
-      />
-    );
-  };
 
   render() {
-    const { isSubmit } = this.state;
     return (
       <View style={styles.container}>
-        {this._renderBaseAmount()}
-        {this._renderTargetAmount()}
-        {isSubmit ? <Text> Currency Saved !</Text> : <Separator />}
-        {this._renderSaveButton()}
-
+        {this._renderListCurrency()}
       </View>
     );
   };
@@ -263,5 +136,19 @@ const styles = StyleSheet.create({
   textAmount: {
     marginLeft: 10,
     width: '100%'
-  }
+  },
+  listWrapper: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignContent: 'center',
+    margin: 5,
+    padding: 15,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 5,
+    borderColor: 'black'
+},
+lowerContentFont: {
+    fontSize: 20,
+    fontWeight: 'bold'
+}
 });

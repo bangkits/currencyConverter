@@ -7,10 +7,7 @@ class FooterWidget extends Component {
     return (
       <View style={styles.wrapperBox}>
           <TouchableOpacity onPress={this.props.onPressAdd} style={styles.addButton}>
-            <Text style={styles.mainText}>Add</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.editButton}>
-            <Text style={styles.mainText}>Edit</Text>
+            <Text style={styles.mainText}>Add Currency</Text>
           </TouchableOpacity>
       </View>
     )
@@ -34,17 +31,9 @@ const styles = StyleSheet.create({
     borderTopEndRadius: 5
   },
   addButton: {
-    width: '60%',
+    width: '80%',
     justifyContent: 'center',
     backgroundColor: '#26C6DA',
-    borderWidth: 1,
-    borderColor: '#000',
-    borderRadius: 15
-  },
-  editButton: {
-    width: '30%',
-    justifyContent: 'center',
-    backgroundColor: "#FFA726",
     borderWidth: 1,
     borderColor: '#000',
     borderRadius: 15
